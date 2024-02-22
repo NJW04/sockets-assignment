@@ -1,4 +1,5 @@
 import socket
+import threading
 
 def get_local_ip():
     try:
@@ -10,6 +11,14 @@ def get_local_ip():
         return local_ip
     except socket.error:
         return "Unable to determine IP address"
+
+def sendToServer(msg):
+    print(msg)
+    client_socket.send(msg.encode(FORMAT))    #Encoding it to be sent to the server
+    
+    #Now to view the message sent from server back to client use
+    print(client_socket.recv(2048).decode(FORMAT))
+    
     
 PORT = 5050
 FORMAT = 'utf-8'
@@ -17,15 +26,15 @@ DISCONNECT_MESSAGE = "!DISCONNECT"
 SERVER = get_local_ip()
 ADDRESS = (SERVER,PORT)
 
-client = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-client.connect(ADDRESS) #Client connecting to address of server
+client_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)    
+try:
+   client_socket.connect(ADDRESS) #Client connecting to address of server
+   
+   msgToSend = input("What do you want to send to the server: ")
+   sendToServer(msgToSend)
 
-def send(msg):
-    message = msg.encode(FORMAT)    #Encoding it to be sent to the server
-    client.send(message)
-    
-    #Now to view the message sent from server back to client use
-    print(client.recv(2048).decode(FORMAT))
-    
-send("Hello world!")
-send(DISCONNECT_MESSAGE)
+except (socket.error, socket.timeout) as e:
+    print(f"Error: Unable to connect to the server. {e}")
+
+finally:
+    client_socket.close()

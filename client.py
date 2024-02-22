@@ -13,7 +13,6 @@ def get_local_ip():
         return "Unable to determine IP address"
 
 def sendToServer(msg):
-    print(msg)
     client_socket.send(msg.encode(FORMAT))    #Encoding it to be sent to the server
     
     #Now to view the message sent from server back to client use
@@ -30,11 +29,17 @@ client_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 try:
    client_socket.connect(ADDRESS) #Client connecting to address of server
    
-   msgToSend = input("What do you want to send to the server: ")
-   sendToServer(msgToSend)
+   while True:
+    msgToSend = input("What do you want to send to the server: ")
+    if msgToSend == "exit":
+        break
+    else:
+        sendToServer(msgToSend)
 
 except (socket.error, socket.timeout) as e:
     print(f"Error: Unable to connect to the server. {e}")
 
 finally:
     client_socket.close()
+    
+    

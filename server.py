@@ -18,33 +18,61 @@ SERVER = get_local_ip() #Instead of hard coding in the IP Address this gets the 
 #SERVER = "196.24.190.87"
 ADDRESS = (SERVER,PORT) #This is the exact address with matching IP and Port number for the server
 FORMAT = 'utf-8'
-DISCONNECT_MESSAGE = "!DISCONNECT"
+DISCONNECT_MESSAGE = "!disconnect"
 
 serverSocket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)   #SOCK_STREAM is needed for TCP server
 serverSocket.bind(ADDRESS)
 
-#Array keeping the IP and Port number of all active clients
+#Array keeping the IP and Port number of all active clients, maybe turn this into dictionary which maps addr to online status
 activeClients = []
+activeClientsStatus = {}
+activeClientsUsername = {}
+help_message = "Available Commands:\n" \
+                   "- !help: Display a list of available commands.\n" \
+                   "- !list: Display a list of active clients.\n" \
+                   "- message [recipientUsername] [content]: Send a message to another client.\n" \
+                    "- !hide: Hide yourself to not appear to any other client\n" \
+                    "- !active: Set yourself as active to be seen by other clients\n" \
+                   "- !disconnect: Disconnect from the server."
 
 def handleClient(connectionSocket, addr):
     print(f"[NEW CONNECTION] {addr} connected.")
     activeClients.append(addr)  #Adds a tuple containing clients IP and port number
+    activeClientsStatus[addr] = "active"
     connected = True
     while connected:
         msg = connectionSocket.recv(2048).decode(FORMAT)   #Number of bytes it receives, it blocks on this line until it receives
         if msg:
             if msg == DISCONNECT_MESSAGE:
-                for clientInfo in activeClients:
-                    if clientInfo == addr:
-                        activeClients.remove(clientInfo)    #Removing the address from active clients
+                if addr in activeClients:
+                    activeClients.remove(addr)     #Removing the address from active clients
                 break
-            elif msg == "send":
-                returnStr = "This is from the list of active clients:\n"
+            elif msg[0:4] == "JOIN":
+                clientInfoArr = msg.split()
+                activeClientsUsername[clientInfoArr[3]] = addr
+                connectionSocket.send((f"{clientInfoArr[3]}, you have successfully joined the server").encode(FORMAT))
+            elif msg == "!list":
+                for key, value in activeClientsUsername.items():
+                    print(f"{key}: {value}")
+                returnStr = "This is the list of active clients:\n"
                 for info in activeClients:
-                    returnStr += f"{info} \n"   
+                    if activeClientsStatus[info] == "active":    #Only display clients who want to appear online
+                        returnStr += f"{info} \n"   
                 connectionSocket.send(returnStr.encode(FORMAT))
+            elif msg == "!help":
+                    connectionSocket.send(help_message.encode(FORMAT))
+            elif msg == "!hide":
+                if not (activeClientsStatus[addr] == "hidden"):
+                    activeClientsStatus[addr] = "hidden"
+                    connectionSocket.send(f"You have been hidden {addr}".encode(FORMAT))
+            elif msg == "!active":
+                if not (activeClientsStatus[addr] == "active"):
+                    activeClientsStatus[addr] = "active"
+                    connectionSocket.send(f"You are now active {addr}".encode(FORMAT))
+            elif msg in activeClientsUsername:
+                connectionSocket.send(activeClientsUsername[msg].encode(FORMAT))    
             else:
-                connectionSocket.send((f"[{addr}] {msg} this is being sent back from the server").encode(FORMAT))
+                connectionSocket.send((f"[{addr}] {msg} - This message has been received by the server, hi!").encode(FORMAT))
     
     connectionSocket.close()
         

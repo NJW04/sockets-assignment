@@ -1,5 +1,7 @@
 import socket
 import threading
+import re
+import os
 
 def get_local_ip():
     try:
@@ -17,6 +19,12 @@ def sendToServer(msg):
     
     #Now to view the message sent from server back to client use
     print(client_socket.recv(2048).decode(FORMAT))
+    
+def sendToServerReturn(msg):
+    client_socket.send(msg.encode(FORMAT))    #Encoding it to be sent to the server
+    
+    #Now to view the message sent from server back to client use
+    return (client_socket.recv(2048).decode(FORMAT))
     
 def sendToFriend(socket,message,other_client_ip,other_client_port):
     socket.sendto(message.encode(FORMAT), (other_client_ip, other_client_port))
@@ -39,12 +47,13 @@ def start_client():
     receive_thread.start()
 
     # Send messages, this is the protocl section, so all the ifs for the msgs and stuff like JOIN for server and SEND for sending
-    #JOIN <ip> <port> <visibility> <username>
+    #JOIN <ip> <port> <username>
     #SEND <name> <message>
     
     while True:
         msgToSend = input("Enter command (use !help): ")
-        msgToSendArr = msgToSend.split(",")
+        print()
+        msgToSendArr = msgToSend.split(", ")
         if len(msgToSendArr) == 1:
             if msgToSend == DISCONNECT_MESSAGE:
                 sendToServer(msgToSend)
@@ -52,12 +61,18 @@ def start_client():
             else:                   
                 sendToServer(msgToSend)     #Only the 1 word commands that the server knows
         else:
-            if msgToSendArr[0] == "SEND" and len(msgToSendArr == 3):    #add more protection here
-                sendToServer(msgToSendArr[1])   #i.e Ben
-                other_client_info = client_socket.recv(2048).decode(FORMAT) #this is receiving the IP and PORT number
-                sendToFriend(client_udp_socket,','.join(msgToSendArr[2:]),other_client_info[0],other_client_info[1])    #JESUS FUCKING CHRIST CHECK THIS SHIT
-            else:
-                print(f"invalid command: {msgToSend}")
+            if msgToSendArr[0] == "SEND":    #add more protection here
+                matches = re.match(r'(\S+)\s+(\S+)\s+(.*)', msgToSend)
+                if matches:
+                    command = matches.group(1)
+                    name = matches.group(2)
+                    message = matches.group(3)
+        
+                    other_client_info = sendToServerReturn(name)   #i.e Ben #this is receiving the IP and PORT number
+                    other_client_info = other_client_info.split()
+                    sendToFriend(client_udp_socket,message,other_client_info[0],other_client_info[1])    #JESUS FUCKING CHRIST CHECK THIS SHIT
+                else:
+                    print(f"invalid command: {msgToSend}")
                 
 
     # Close the socket

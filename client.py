@@ -27,7 +27,8 @@ def sendToServerReturn(msg):
     return (client_socket.recv(2048).decode(FORMAT))
     
 def sendToFriend(socket,message,other_client_ip,other_client_port):
-    socket.sendto(message.encode(FORMAT), (other_client_ip, other_client_port))
+    friendAddress = (other_client_ip,other_client_port)
+    socket.sendto(message.encode(FORMAT), friendAddress)
     
 
 def receive_messages(sock):
@@ -53,8 +54,10 @@ def start_client():
     while True:
         msgToSend = input("Enter command (use !help): ")
         print()
-        msgToSendArr = msgToSend.split(", ")
-        if len(msgToSendArr) == 1:
+        msgToSendArr = msgToSend.split(" ") #['SEND', 'Nathan','Hi,','howsit']
+        if not msgToSend:
+            print("Empty commnad")
+        elif len(msgToSendArr) == 1:
             if msgToSend == DISCONNECT_MESSAGE:
                 sendToServer(msgToSend)
                 break
@@ -68,9 +71,9 @@ def start_client():
                     name = matches.group(2)
                     message = matches.group(3)
         
-                    other_client_info = sendToServerReturn(name)   #i.e Ben #this is receiving the IP and PORT number
+                    other_client_info = sendToServerReturn(name)   #i.e Ben, this is receiving the IP and PORT number
                     other_client_info = other_client_info.split()
-                    sendToFriend(client_udp_socket,message,other_client_info[0],other_client_info[1])    #JESUS FUCKING CHRIST CHECK THIS SHIT
+                    sendToFriend(client_udp_socket,message,other_client_info[0],int(other_client_info[1]))
                 else:
                     print(f"invalid command: {msgToSend}")
                 
@@ -79,10 +82,31 @@ def start_client():
     client_udp_socket.close()
     
 def joinCommand():
-    joinCommand = "- - -"
-    while len(joinCommand.split()) != 4 and joinCommand.split()[0] != "JOIN" and not joinCommand.split()[2].isnumeric():
-        joinCommand = input("[Enter this command to join the server: JOIN <ip> <port> <username]: ")
-    return joinCommand.lstrip()
+    while True:
+        user_input = input("[Enter this command to join the server: JOIN <ip> <port> <username]: " )
+
+        # Split the input into words
+        words = user_input.split()
+
+        # Check if the input has exactly 4 words
+        if len(words) == 4:
+            # Check the first word is "JOIN"
+            if words[0] == "JOIN":
+                # Check the second word is in IP address format
+                if re.match(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$', words[1]):
+                    # Check the third word contains only digits
+                    if words[2].isdigit():
+                        break
+                    else:
+                        print("Invalid input. Third word must contain only digits.")
+                else:
+                    print("Invalid input. Second word must be in IP address format.")
+            else:
+                print("Invalid input. First word must be 'JOIN'.")
+        else:
+            print("Invalid input. Please enter a string with exactly 4 words separated by spaces.")
+            
+    return user_input.lstrip()
     
     
 #PORT = 5050
@@ -92,20 +116,21 @@ DISCONNECT_MESSAGE = "!disconnect"
 #ADDRESS = (SERVER,PORT)
 
 client_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)    
+
+clientInfo = joinCommand()
+clientInfoArr = clientInfo.split()   #[JOIN],[123.123.4.5],[5050],Nathan
+PORT = int(clientInfoArr[2])
+SERVER = clientInfoArr[1]
+ADDRESS = (SERVER,PORT)
 try:
-    clientInfo = joinCommand()
-    clientInfoArr = clientInfo.split()   #[JOIN],[123.123.4.5],[5050],Nathan
-    PORT = int(clientInfoArr[2])
-    SERVER = clientInfoArr[1]
-    ADDRESS = (SERVER,PORT)
     client_socket.connect(ADDRESS) #Client connecting to address of server
     sendToServer(clientInfo)
     start_client()
 except (socket.error, socket.timeout) as e:
-    print(f"Error: Unable to connect to the server. {e}")
+        print(f"Error: Unable to connect to the server. {e}")
 
 finally:
-    client_socket.close()
+        client_socket.close()
 
     
     

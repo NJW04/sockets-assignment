@@ -13,7 +13,7 @@ def get_local_ip():
     except socket.error:
         return "Unable to determine IP address"
 
-PORT = 5050
+PORT = 5051
 SERVER = get_local_ip() #Instead of hard coding in the IP Address this gets the IP Address of local machines
 #SERVER = "196.24.190.87"
 ADDRESS = (SERVER,PORT) #This is the exact address with matching IP and Port number for the server
@@ -70,8 +70,8 @@ def handleClient(connectionSocket, addr):
                     if not (activeClientsStatus[addr] == "active"):
                         activeClientsStatus[addr] = "active"
                         connectionSocket.send(f"You are now active {addr}".encode(FORMAT))
-                elif msgArr[1] in activeClientsUsername:
-                    result_string = ' '.join(str(element) for element in activeClientsUsername[msgArr[1]])    # 192.123.3.8 42598, this returns this string
+                elif msg in activeClientsUsername:
+                    result_string = ' '.join(str(element) for element in activeClientsUsername[msg])    # 192.123.3.8 42598, this returns this string
                     connectionSocket.send(result_string.encode(FORMAT)) #This is sending a string with a space of the IP and PORT
                 else:
                     connectionSocket.send((f"Invalid Command: {msg}").encode(FORMAT))   #Send Nathan Hey
@@ -79,6 +79,8 @@ def handleClient(connectionSocket, addr):
         connectionSocket.close()
     except ConnectionResetError:
         print("Connection reset by peer.")
+        #shut down the sever safely
+        serverSocket.close()
         
     
 

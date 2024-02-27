@@ -41,9 +41,13 @@ def receive_messages(sock):
             print("THERE IS ERROR")
             break
 
-def start_client():
+def start_client(username):
     # Create a UDP socket
     client_udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    client_udp_socket.bind(('196.24.189.216',0))
+    udpAddress, udpPort = client_udp_socket.getsockname()    #Different port and ip for udp socket
+     
+    sendToServer(f"UDP {udpAddress} {udpPort} {username}")  
     
 
     # Start a thread to receive messages
@@ -68,7 +72,7 @@ def start_client():
                 if matches:
                     command = matches.group(1)
                     name = matches.group(2)
-                    message = matches.group(3)
+                    message = matches.group(3) + '\n'
                     print(name)
                     print(message)
         
@@ -127,7 +131,7 @@ ADDRESS = (SERVER,PORT)
 try:
     client_socket.connect(ADDRESS) #Client connecting to address of server
     sendToServer(clientInfo)
-    start_client()
+    start_client(clientInfoArr[3])
 except (socket.error, socket.timeout) as e:
         print(f"Error: Unable to connect to the server. {e}")
 

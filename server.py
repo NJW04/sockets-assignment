@@ -27,6 +27,8 @@ serverSocket.bind(ADDRESS)
 activeClients = []
 activeClientsStatus = {}
 activeClientsUsername = {}
+activeUDPClientsUsername = {}
+
 help_message = "Available Commands:\n" \
                    "- !help: Display a list of available commands.\n" \
                    "- !list: Display a list of active clients.\n" \
@@ -70,8 +72,11 @@ def handleClient(connectionSocket, addr):
                     if not (activeClientsStatus[addr] == "active"):
                         activeClientsStatus[addr] = "active"
                         connectionSocket.send(f"You are now active {addr}".encode(FORMAT))
-                elif msg in activeClientsUsername:
-                    result_string = ' '.join(str(element) for element in activeClientsUsername[msg])    # 192.123.3.8 42598, this returns this string
+                elif msgArr[0] == "UDP":    # 0 is string 'udp', 1 is ip, 2 is port number, 3 is username
+                    activeUDPClientsUsername[msgArr[3]] = (msgArr[1],msgArr[2])
+                    connectionSocket.send((f"\nThe UDP socket for you is {activeUDPClientsUsername[msgArr[3]]}").encode(FORMAT))
+                elif msg in activeUDPClientsUsername:
+                    result_string = ' '.join(str(element) for element in activeUDPClientsUsername[msg])    # 192.123.3.8 42598, this returns this string
                     connectionSocket.send(result_string.encode(FORMAT)) #This is sending a string with a space of the IP and PORT
                 elif msg not in activeClientsUsername:
                     connectionSocket.send(f"{msg} does not exist on the server".encode(FORMAT))

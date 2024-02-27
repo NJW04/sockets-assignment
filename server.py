@@ -13,7 +13,7 @@ def get_local_ip():
     except socket.error:
         return "Unable to determine IP address"
 
-PORT = 5051
+PORT = 5050
 SERVER = get_local_ip() #Instead of hard coding in the IP Address this gets the IP Address of local machines
 #SERVER = "196.24.190.87"
 ADDRESS = (SERVER,PORT) #This is the exact address with matching IP and Port number for the server
@@ -48,11 +48,11 @@ def handleClient(connectionSocket, addr):
                 if msg == DISCONNECT_MESSAGE:
                     if addr in activeClients:
                         activeClients.remove(addr)     #Removing the address from active clients
-                        connectionSocket.send("!disconnect".encode(FORMAT))
-                    break
+                        connectionSocket.send("You have disconnected,bye!".encode(FORMAT))
+                    connected= False
                 elif msg[0:4] == "JOIN":
                     clientInfoArr = msg.split()
-                    activeClientsUsername[clientInfoArr[3]] = addr
+                    activeClientsUsername[clientInfoArr[3]] = addr  #this is where it maps the clients username to their TCP port
                     connectionSocket.send((f"\n{clientInfoArr[3]}, you have successfully joined the server").encode(FORMAT))
                 elif msg == "!list":
                     returnStr = "This is the list of active clients:\n"
@@ -73,6 +73,8 @@ def handleClient(connectionSocket, addr):
                 elif msg in activeClientsUsername:
                     result_string = ' '.join(str(element) for element in activeClientsUsername[msg])    # 192.123.3.8 42598, this returns this string
                     connectionSocket.send(result_string.encode(FORMAT)) #This is sending a string with a space of the IP and PORT
+                elif msg not in activeClientsUsername:
+                    connectionSocket.send(f"{msg} does not exist on the server".encode(FORMAT))
                 else:
                     connectionSocket.send((f"Invalid Command: {msg}").encode(FORMAT))   #Send Nathan Hey
         
@@ -97,7 +99,7 @@ def start():
             thread.start()
             print(f"[ACTIVE CONNECTIONS] {threading.active_count() - 1}")    #Always -1 because of this always True thread
     except  (socket.error, socket.timeout):
-        print("Error error")
+        print("Error error, server socket has closed")
         
                                                         
 

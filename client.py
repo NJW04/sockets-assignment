@@ -28,6 +28,7 @@ def sendToServerReturn(msg):
     
 def sendToFriend(socket,message,other_client_ip,other_client_port):
     friendAddress = (other_client_ip,other_client_port)
+    print(f"SENDING TO FRIENDS ADRESS:  {friendAddress}")
     socket.sendto(message.encode(FORMAT), friendAddress)
     
 
@@ -36,20 +37,18 @@ def receive_messages(sock):
         try:
             data, addr = sock.recvfrom(1024)
             print(f"Received from {addr}: {data.decode(FORMAT)}")
-        except ConnectionResetError:
+        except socket.error:
+            print("THERE IS ERROR")
             break
 
 def start_client():
     # Create a UDP socket
     client_udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    
 
     # Start a thread to receive messages
     receive_thread = threading.Thread(target=receive_messages, args=(client_udp_socket,))
     receive_thread.start()
-
-    # Send messages, this is the protocl section, so all the ifs for the msgs and stuff like JOIN for server and SEND for sending
-    #JOIN <ip> <port> <username>
-    #SEND <name> <message>
     
     while True:
         msgToSend = input("Enter command (use !help): ")
@@ -70,8 +69,11 @@ def start_client():
                     command = matches.group(1)
                     name = matches.group(2)
                     message = matches.group(3)
+                    print(name)
+                    print(message)
         
                     other_client_info = sendToServerReturn(name)   #i.e Ben, this is receiving the IP and PORT number
+                    print(f"Other client info: {other_client_info}")
                     other_client_info = other_client_info.split()
                     sendToFriend(client_udp_socket,message,other_client_info[0],int(other_client_info[1]))
                 else:

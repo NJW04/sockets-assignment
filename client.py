@@ -15,20 +15,23 @@ def get_local_ip():
         return "Unable to determine IP address"
 
 def sendToServer(msg):
-    client_socket.send(msg.encode(FORMAT))    #Encoding it to be sent to the server
-    
-    #Now to view the message sent from server back to client use
-    print(client_socket.recv(2048).decode(FORMAT))
+    try:
+        msg = msg.lstrip()
+        client_socket.send(msg.encode(FORMAT))    #Encoding it to be sent to the server
+        
+        #Now to view the message sent from server back to client use
+        print(client_socket.recv(2048).decode(FORMAT))
+    except ConnectionError:
+        # Handle the case where the connection fails or the server is unreachable
+        print("Connection error: Server not available")
     
 def sendToServerReturn(msg):
     client_socket.send(msg.encode(FORMAT))    #Encoding it to be sent to the server
-    
-    #Now to view the message sent from server back to client use
     return (client_socket.recv(2048).decode(FORMAT))
     
-def sendToFriend(socket,message,other_client_ip,other_client_port):
+def sendToFriend(socket,message,other_client_ip,other_client_port,username):
     friendAddress = (other_client_ip,other_client_port)
-    print(f"SENDING TO FRIENDS ADRESS:  {friendAddress}")
+    message = username + " " + message
     socket.sendto(message.encode(FORMAT), friendAddress)
     
 
@@ -36,7 +39,12 @@ def receive_messages(sock):
     while True:
         try:
             data, addr = sock.recvfrom(1024)
-            print(f"Received from {addr}: {data.decode(FORMAT)}")
+            data = data.decode(FORMAT)
+            dataArr = data.split(' ')
+            sender = dataArr[0]
+            dataArr = dataArr[1:]
+            message = ' '.join(dataArr)
+            print(f"\n{sender}: {message}\nEnter command (use !help): ")
         except socket.error:
             print("THERE IS ERROR")
             break
@@ -45,6 +53,7 @@ def start_client(username):
     # Create a UDP socket
     client_udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     client_udp_socket.bind(('196.24.189.216',0))
+    #client_udp_socket.bind((get_local_ip,0))
     udpAddress, udpPort = client_udp_socket.getsockname()    #Different port and ip for udp socket
      
     sendToServer(f"UDP {udpAddress} {udpPort} {username}")  
@@ -73,23 +82,24 @@ def start_client(username):
                     command = matches.group(1)
                     name = matches.group(2)
                     message = matches.group(3) + '\n'
-                    print(name)
-                    print(message)
         
                     other_client_info = sendToServerReturn(name)   #i.e Ben, this is receiving the IP and PORT number
-                    print(f"Other client info: {other_client_info}")
-                    other_client_info = other_client_info.split()
-                    sendToFriend(client_udp_socket,message,other_client_info[0],int(other_client_info[1]))
+                    if other_client_info == "does not exist on the server":
+                        print(f"Username: {name}, does not exist on the server")
+                    else:
+                        other_client_info = other_client_info.split()
+                        sendToFriend(client_udp_socket,message,other_client_info[0],int(other_client_info[1]),username)
                 else:
                     print(f"invalid command: {msgToSend}")
                 
 
     # Close the socket
     client_udp_socket.close()
-    
+
+
 def joinCommand():
     while True:
-        user_input = input("[Enter this command to join the server: JOIN <ip> <port> <username]: " )
+        user_input = input("[Enter this command to join the server: JOIN <ip> <port> <username>]: " )
 
         # Split the input into words
         words = user_input.split()
@@ -132,7 +142,7 @@ try:
     client_socket.connect(ADDRESS) #Client connecting to address of server
     sendToServer(clientInfo)
     start_client(clientInfoArr[3])
-except (socket.error, socket.timeout) as e:
+except (socket.error, socket.timeout,ConnectionError) as e:
         print(f"Error: Unable to connect to the server. {e}")
 
 finally:

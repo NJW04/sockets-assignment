@@ -40,7 +40,7 @@ help_message = "Available Commands:\n" \
 def handleClient(connectionSocket, addr):
     print(f"[NEW CONNECTION] {addr} connected.")
     activeClients.append(addr)  #Adds a tuple containing clients IP and port number
-    activeClientsStatus[addr] = "active"
+    #activeClientsStatus[addr] = "active"
     connected = True
     try:
         while connected:
@@ -58,7 +58,7 @@ def handleClient(connectionSocket, addr):
                     connectionSocket.send((f"\n{clientInfoArr[3]}, you have successfully joined the server").encode(FORMAT))
                 elif msg == "!list":
                     returnStr = "This is the list of active clients:\n"
-                    for key, value in activeClientsUsername.items():
+                    for key, value in activeUDPClientsUsername.items():
                         if activeClientsStatus[value] == "active":
                             returnStr += (f"{key}: {value}\n")   
                     connectionSocket.send(returnStr.encode(FORMAT))
@@ -78,10 +78,10 @@ def handleClient(connectionSocket, addr):
                 elif msg in activeUDPClientsUsername:
                     result_string = ' '.join(str(element) for element in activeUDPClientsUsername[msg])    # 192.123.3.8 42598, this returns this string
                     connectionSocket.send(result_string.encode(FORMAT)) #This is sending a string with a space of the IP and PORT
-                elif msg not in activeClientsUsername:
-                    connectionSocket.send(f"{msg} does not exist on the server".encode(FORMAT))
+                elif msg not in activeUDPClientsUsername:
+                    connectionSocket.send("does not exist on the server".encode(FORMAT))
                 else:
-                    connectionSocket.send((f"Invalid Command: {msg}").encode(FORMAT))   #Send Nathan Hey
+                    connectionSocket.send((f"Invalid Command: {msg}").encode(FORMAT))
         
         connectionSocket.close()
     except ConnectionResetError:
@@ -100,14 +100,13 @@ def start():
         while True:                 
             connectionSocket, addr = serverSocket.accept()  #Waits for a new connection, addr is storing the IP and port number it came from AND connectionSocket is a socket object which allows us to comunicate back to the thing that connected
             
-            thread = threading.Thread(target=handleClient,args=(connectionSocket,addr)) #when a new connection occurs create a new thread to handle it
+            thread = threading.Thread(target=handleClient,args=(connectionSocket,addr)) #When a new connection occurs create a new thread to handle it
             thread.start()
             print(f"[ACTIVE CONNECTIONS] {threading.active_count() - 1}")    #Always -1 because of this always True thread
     except  (socket.error, socket.timeout):
         print("Error error, server socket has closed")
         
                                                         
-
 print("[STARTING] server is starting...")
 start()
  
